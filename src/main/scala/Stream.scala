@@ -2,7 +2,7 @@ package cakal.lab
 
 import org.apache.spark.streaming.{Minutes, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
-import org.apache.spark.sql.{DataFrame, SQLContext}
+import org.apache.spark.sql.SQLContext
 
 object Stream {
 
@@ -23,7 +23,7 @@ object Stream {
     for ((coin,url) <- coinURL){
       val data = ssc.receiverStream(new CoinReceiver(url))
       data.foreachRDD(rdd => {
-        val data: DataFrame = util.getCoinData(sqlContext, rdd, coin, "usd")
+        val data = util.getCoinData(sqlContext, rdd, coin, "usd")
         data.show(truncate = false)
       })
     }

@@ -3,14 +3,39 @@ package cakal.lab
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{DataFrame, SQLContext}
 import org.apache.spark.sql.functions.{col, from_unixtime, lit}
+import org.apache.spark.sql.types.{StringType, StructType}
 
 
 class Utils() {
 
-  def formatCoinData(SQLContext: SQLContext, data: RDD[String], coin: String, curr: String): DataFrame = {
+  def getCoinURL(coin: List[String], curr: List[String]): List[(String, String)] = {
+
+    var urlList = List[String]()
+    var coinList = List[String]()
+    val mList = curr.flatMap(x => coin.map(y => (x, y)))
+    for ((currency, coin) <- mList) {
+      val url = "https://api.coingecko.com/api/v3/simple/price?ids=" + coin + "&vs_currencies=" + currency + "&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true&include_last_updated_at=true"
+      urlList = urlList :+ url
+      coinList = coinList :+ coin
+
+    }
+    val mergedList = coinList zip urlList
+    mergedList
+  }
+
+  def getCoinData(SQLContext: SQLContext, data: RDD[String], coin: String, curr: String): DataFrame = {
+
+    val structSchema = new StructType()
+      .add(coin ,new StructType()
+        .add(curr ,StringType)
+        .add(curr + "_24h_vol" ,StringType)
+        .add(curr + "_24h_change",StringType)
+        .add(curr + "_market_cap",StringType)
+        .add("last_updated_at",StringType)
+      )
+
     val dF = SQLContext.read.format("json")
-      .option("inferSchema", "true")
-      .option("multiLine", "true")
+      .schema(structSchema)
       .json(data)
 
     val dF2 = dF.withColumn("Crypto Currency", lit(coin))
@@ -27,29 +52,14 @@ class Utils() {
     dF3
   }
 
-  def getCoinData(SQLContext: SQLContext, data: RDD[String], coinList: String, currList: String): DataFrame = {
+  def getCoinMerged(SQLContext: SQLContext, data: RDD[String], coin: String, curr: String): DataFrame = {
 
     import SQLContext.implicits._
 
     val colSeq = Seq("Crypto Currency", "Currency", "Price", "24H Volume", "24H Change", "Market Cap", "Date")
     var dF = Seq.empty[(String, String, String, String, String, String, String)].toDF(colSeq: _*)
-    val dF2 = formatCoinData(SQLContext, data, coinList, currList)
+    val dF2 = getCoinData(SQLContext, data, coin, curr)
     dF = dF.union(dF2)
     dF
-  }
-
-  def getCoinURL(coin: List[String], curr: List[String]): List[(String, String)] = {
-
-    var urlList = List[String]()
-    var coinList = List[String]()
-    val mList = curr.flatMap(x => coin.map(y => (x, y)))
-    for ((currency, coin) <- mList) {
-      val url = "https://api.coingecko.com/api/v3/simple/price?ids=" + coin + "&vs_currencies=" + currency + "&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true&include_last_updated_at=true"
-      urlList = urlList :+ url
-      coinList = coinList :+ coin
-
-    }
-    val mergedList = coinList zip urlList
-    mergedList
   }
 }
