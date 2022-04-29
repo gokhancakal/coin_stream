@@ -20,10 +20,11 @@ object Stream {
 
     val coinURL = util.getCoinURL(coinList, currList)
 
-    for ((coin,url) <- coinURL){
+    for (((coin,curr),url) <- coinURL){
+      println(url)
       val data = ssc.receiverStream(new CoinReceiver(url))
       data.foreachRDD(rdd => {
-        val data = util.getCoinData(sqlContext, rdd, coin, "usd")
+        val data = util.getCoinData(sqlContext, rdd, coin, curr)
         data.show(truncate = false)
       })
     }

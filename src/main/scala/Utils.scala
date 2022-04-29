@@ -8,18 +8,15 @@ import org.apache.spark.sql.types.{StringType, StructType}
 
 class Utils() {
 
-  def getCoinURL(coin: List[String], curr: List[String]): List[(String, String)] = {
+  def getCoinURL(coin: List[String], curr: List[String]): List[((String, String),String)] = {
 
     var urlList = List[String]()
-    var coinList = List[String]()
-    val mList = curr.flatMap(x => coin.map(y => (x, y)))
-    for ((currency, coin) <- mList) {
+    val mList = coin.flatMap(x => curr.map(y => (x, y)))
+    for ((coin, currency) <- mList) {
       val url = "https://api.coingecko.com/api/v3/simple/price?ids=" + coin + "&vs_currencies=" + currency + "&include_market_cap=true&include_24hr_vol=true&include_24hr_change=true&include_last_updated_at=true"
       urlList = urlList :+ url
-      coinList = coinList :+ coin
-
     }
-    val mergedList = coinList zip urlList
+    val mergedList = mList zip urlList
     mergedList
   }
 
